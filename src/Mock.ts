@@ -80,10 +80,16 @@ const handler = (opts?: MockOpts) => ({
     },
 
     get: (obj: MockProxy<any>, property: ProxiedProperty) => {
-        let fn = calledWithFn();
+        const propertyAsString = typeof property === "symbol" ? property.toString() : property+""
+        let fn = calledWithFn(propertyAsString);
 
         // @ts-ignore
         if (!obj[property]) {
+            // When we try to use expect's Matchers it tries to take "asymmetricMatch"
+            // I don't know why, but this is required
+            if (property === "asymmetricMatch") {
+                return obj[property]
+            }
             // This condition is required to use the mock object in the promise.
             // For example Promise.resolve (layout) and async return values.
             // These solutions check the "then" property.
@@ -102,7 +108,7 @@ const handler = (opts?: MockOpts) => ({
                 obj[property]._isMockObject = true;
             } else {
                 // @ts-ignore
-                obj[property] = calledWithFn();
+                obj[property] = calledWithFn(propertyAsString);
             }
         }
         // @ts-ignore

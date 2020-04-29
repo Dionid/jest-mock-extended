@@ -6,18 +6,20 @@ interface CalledWithStackItem<T, Y extends any[]> {
     calledWithFn: jest.Mock<T, Y>;
 }
 
-const checkCalledWith = <T, Y extends any[]>(calledWithStack: CalledWithStackItem<T, Y>[], actualArgs: Y): T => {
+const checkCalledWith = <T, Y extends any[]>(fnName: string, calledWithStack: CalledWithStackItem<T, Y>[], actualArgs: Y): T => {
     const calledWithInstance = calledWithStack.find(instance =>
         instance.args.every((matcher, i) =>
             matcher instanceof Matcher ? matcher.asymmetricMatch(actualArgs[i]) : actualArgs[i] === matcher
         )
     );
-
-    // @ts-ignore cannot return undefined, but this will fail the test if there is an expectation which is what we want
-    return calledWithInstance ? calledWithInstance.calledWithFn(...actualArgs) : undefined;
+    if (calledWithInstance) {
+        return calledWithInstance.calledWithFn(...actualArgs)
+    } else {
+        throw new Error(`All "${fnName}" function implementations can't handle args: ${JSON.stringify(actualArgs)}`)
+    }
 };
 
-export const calledWithFn = <T, Y extends any[]>(): CalledWithMock<T, Y> => {
+export const calledWithFn = <T, Y extends any[]>(fnName: string): CalledWithMock<T, Y> => {
     const fn: jest.Mock<T, Y> = jest.fn();
     const calledWithStack: CalledWithStackItem<T, Y>[] = [];
     let hasImplementation = false;
@@ -28,13 +30,16 @@ export const calledWithFn = <T, Y extends any[]>(): CalledWithMock<T, Y> => {
         const calledWithFn = jest.fn();
         if (!hasImplementation) {
             // Our original function gets a mock implementation which handles the matching
-            fn.mockImplementation((...args: Y) => checkCalledWith(calledWithStack, args));
+            fn.mockImplementation((...args: Y) => checkCalledWith(fnName, calledWithStack, args));
         }
         calledWithStack.push({ args, calledWithFn });
         hasImplementation = true;
 
         return calledWithFn;
     };
+    fn.mockImplementation((...args) => {
+        throw new Error(`No implementation for "${fnName}" function. Called with args: ${JSON.stringify(args)}`)
+    });
 
     return fn as CalledWithMock<T, Y>;
 };

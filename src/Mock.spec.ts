@@ -1,5 +1,5 @@
 import mock, { mockClear, mockDeep, mockReset } from './Mock';
-import { anyNumber } from './Matchers';
+import { anyNumber, any } from './Matchers';
 import calledWithFn from './CalledWithFn';
 
 interface MockInt {
@@ -52,7 +52,8 @@ class Test3 {
 describe('jest-mock-extended', () => {
     test('Can be assigned back to itself even when there are private parts', () => {
         // No TS errors here
-        const mockObj: Test1 = mock<Test1>();
+        const mockObj = mock<Test1>();
+        mockObj.getNumber.calledWith();
         // No error here.
         new Test1(1).ofAnother(mockObj);
         expect(mockObj.getNumber).toHaveBeenCalledTimes(1);
@@ -64,7 +65,8 @@ describe('jest-mock-extended', () => {
     });
 
     test('Check that invocations are registered', () => {
-        const mockObj: MockInt = mock<MockInt>();
+        const mockObj = mock<MockInt>();
+        mockObj.getNumber.calledWith();
         mockObj.getNumber();
         mockObj.getNumber();
         expect(mockObj.getNumber).toHaveBeenCalledTimes(2);
@@ -78,6 +80,7 @@ describe('jest-mock-extended', () => {
 
     test('Can specify args', () => {
         const mockObj = mock<MockInt>();
+        mockObj.getSomethingWithArgs.calledWith(1, 2)
         mockObj.getSomethingWithArgs(1, 2);
         expect(mockObj.getSomethingWithArgs).toBeCalledWith(1, 2);
     });
@@ -107,7 +110,7 @@ describe('jest-mock-extended', () => {
 
     describe('calledWith', () => {
         test('can use calledWith without mock', () => {
-            const mockFn = calledWithFn();
+            const mockFn = calledWithFn("MockFn");
             mockFn.calledWith(anyNumber(), anyNumber()).mockReturnValue(3);
             expect(mockFn(1, 2)).toBe(3);
         });
@@ -122,7 +125,7 @@ describe('jest-mock-extended', () => {
             const mockObj = mock<MockInt>();
             mockObj.getSomethingWithArgs.calledWith(anyNumber(), anyNumber()).mockReturnValue(3);
             // @ts-ignore
-            expect(mockObj.getSomethingWithArgs('1', 2)).toBe(undefined);
+            expect(() => mockObj.getSomethingWithArgs('1', 2)).toThrow();
         });
 
         test('can use literals', () => {
@@ -146,25 +149,28 @@ describe('jest-mock-extended', () => {
             expect(mockObj.getSomethingWithArgs(2, 2)).toBe(4);
             expect(mockObj.getSomethingWithArgs(1, 2)).toBe(3);
             expect(mockObj.getSomethingWithArgs(6, 2)).toBe(7);
-            expect(mockObj.getSomethingWithArgs(7, 2)).toBe(undefined);
+            expect(() => mockObj.getSomethingWithArgs(7, 2)).toThrow();
         });
     });
 
     describe('Matchers with toHaveBeenCalledWith', () => {
         it('matchers allow all args to be Matcher based', () => {
-            const mockObj: MockInt = mock<MockInt>();
+            const mockObj = mock<MockInt>();
+            mockObj.getSomethingWithArgs.calledWith(2, 4);
             mockObj.getSomethingWithArgs(2, 4);
             expect(mockObj.getSomethingWithArgs).toHaveBeenCalledWith(anyNumber(), anyNumber());
         });
 
         it('matchers allow for a mix of Matcher and literal', () => {
-            const mockObj: MockInt = mock<MockInt>();
+            const mockObj = mock<MockInt>();
+            mockObj.getSomethingWithArgs.calledWith(2, 4);
             mockObj.getSomethingWithArgs(2, 4);
             expect(mockObj.getSomethingWithArgs).toHaveBeenCalledWith(anyNumber(), 4);
         });
 
         it('matchers allow for not.toHaveBeenCalledWith', () => {
-            const mockObj: MockInt = mock<MockInt>();
+            const mockObj = mock<MockInt>();
+            mockObj.getSomethingWithArgs.calledWith(2, 4);
             mockObj.getSomethingWithArgs(2, 4);
             expect(mockObj.getSomethingWithArgs).not.toHaveBeenCalledWith(anyNumber(), 5);
         });
@@ -185,6 +191,7 @@ describe('jest-mock-extended', () => {
 
         test('maintains API for deep mocks', () => {
             const mockObj = mockDeep<Test1>();
+            mockObj.deepProp.getNumber.calledWith(100);
             mockObj.deepProp.getNumber(100);
 
             expect(mockObj.deepProp.getNumber.mock.calls[0][0]).toBe(100);
@@ -192,12 +199,14 @@ describe('jest-mock-extended', () => {
 
         test('non deep expectation work as expected', () => {
             const mockObj = mockDeep<Test1>();
+            mockObj.getNumber.calledWith();
             new Test1(1).ofAnother(mockObj);
             expect(mockObj.getNumber).toHaveBeenCalledTimes(1);
         });
 
         test('deep expectation work as expected', () => {
             const mockObj = mockDeep<Test1>();
+            mockObj.deepProp.getNumber.calledWith(2).mockReturnValue(2);
             mockObj.deepProp.getNumber(2);
             expect(mockObj.deepProp.getNumber).toHaveBeenCalledTimes(1);
         });
@@ -260,6 +269,7 @@ describe('jest-mock-extended', () => {
         test('Can return as Promise.resolve', async () => {
             const mockObj = mock<MockInt>();
             mockObj.id = 17;
+            // mockObj.asymmetricMatch
             const promiseMockObj = Promise.resolve(mockObj);
             await expect(promiseMockObj).resolves.toBeDefined();
             await expect(promiseMockObj).resolves.toMatchObject({ id: 17 });
