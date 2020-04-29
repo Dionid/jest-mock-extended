@@ -6,6 +6,10 @@
 [![npm version](https://badge.fury.io/js/jest-mock-extended.svg)](https://badge.fury.io/js/jest-mock-extended)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Changed by @Dionid
+Like https://github.com/vektra/mockery if you didn't provide mock function or your Matchers can't cover all called cases,
+than the Error will be thrown instead of `undefined`; 
+
 ## Features
 - Provides complete Typescript type safety for interfaces, argument types and return types
 - Ability to mock any interface or object
